@@ -43,13 +43,12 @@ class Canal():
         self.CANAL_WIDTH = 40
         self.VISIBILITY = (200, -30)
 
+        self.pois = [Poi(self.random_loc()) for _ in range(10)]
 
-        self.pois = [Poi(self.random_loc()) for _ in range(20)]
-
-    def random_loc(self):
+    def random_loc(self, ahead=0):
         return(
-            np.random.randint(2, self.CANAL_WIDTH - 2) - self.CANAL_WIDTH / 2,
-            np.random.randint(0, 500)
+            np.random.randint(3, self.CANAL_WIDTH - 3) - self.CANAL_WIDTH / 2,
+            np.random.randint(self.dist + ahead, self.dist + self.VISIBILITY[0] + ahead)
         )
 
 
@@ -64,6 +63,10 @@ class Canal():
         self.dist += speed
         self.speed = speed
         self.turn = turn
+
+        self.pois = [p for p in self.pois if p.loc[1] > self.dist + self.VISIBILITY[1]] # remove old
+        self.pois += [Poi(self.random_loc(ahead=self.VISIBILITY[0])) for _ in range(10 - len(self.pois))] # add some new
+
         return speed, turn
 
 
@@ -178,7 +181,8 @@ pygame.mixer.init()
 pygame.mixer.set_num_channels(8)
 voice = pygame.mixer.Channel(5)
 sound = pygame.mixer.Sound("sound1.wav")
-
+voice.play(sound, loops=-1)
+voice.set_volume(0)
 
 done = False
 while not done:
@@ -215,12 +219,15 @@ while not done:
         quit()
         sys.exit()
 
-    if abs(turn) > 0.09:
-        voice.set_volume(turn * 2)
-        if not voice.get_busy():
-            voice.play(sound, loops=-1)
-    elif voice.get_busy():
-        voice.stop()
+    # if abs(turn) > 0.09:
+    #     voice.set_volume(turn * 2)
+    #     if not voice.get_busy():
+    #         voice.play(sound, loops=-1)
+    # elif voice.get_busy():
+    #     voice.stop()
+
+    voice.set_volume(max(abs(turn) * 4, 0.05))
+
 
 
 
