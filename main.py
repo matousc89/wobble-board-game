@@ -1,7 +1,10 @@
 import math
 import sys
+import os
+import array
 
 import numpy as np
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = "hide"
 import pygame
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -119,7 +122,7 @@ class Canal():
 
         verticies = np.array((
             (-span + self.offset, self.dist, rot + float),
-            (self.offset, self.dist + reach, 0 + float),
+            (self.offset - rot, self.dist + reach + abs(rot), 0 + float),
             (span + self.offset, self.dist, -rot + float)
         ))
         glColor3f(*COLORS["red"])
@@ -161,7 +164,6 @@ else:
 gluPerspective(45, (GAME_SCREEN_WIDTH/GAME_SCREEN_HEIGHT), 0.1, 200.0)
 glEnable(GL_DEPTH_TEST)
 
-
 canal = Canal()
 sensors = Sensors()
 
@@ -169,12 +171,21 @@ glTranslatef(0.0, -5, -15)
 glRotatef(-70, 1, 0, 0)
 glClearColor(*COLORS["black"], 1)
 
+print(sensors.get_address())
+
+
+pygame.mixer.init()
+pygame.mixer.set_num_channels(8)
+voice = pygame.mixer.Channel(5)
+sound = pygame.mixer.Sound("sound1.wav")
+
 
 done = False
 while not done:
 
+
     # default
-    speed = 0.2
+    speed = 0.3
     turn = 0
 
     # acc input
@@ -204,13 +215,19 @@ while not done:
         quit()
         sys.exit()
 
+    if abs(turn) > 0.09:
+        voice.set_volume(turn * 2)
+        if not voice.get_busy():
+            voice.play(sound, loops=-1)
+    elif voice.get_busy():
+        voice.stop()
+
+
 
     speed, turn = canal.move(speed, turn, angle)
 
     glTranslatef(-turn, -speed, 0)
 
-
-    # glRotatef(1, 3, 1, 1)
     glClear(GL_COLOR_BUFFER_BIT|GL_DEPTH_BUFFER_BIT)
 
     canal.draw()
