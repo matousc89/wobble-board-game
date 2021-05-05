@@ -6,8 +6,12 @@ import copy
 class Sensors():
 
     def __init__(self):
+        hostname = socket.gethostname()
+        self.local_ip = socket.gethostbyname(hostname)
+        self.port = 12000
+
         self.serverSocket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        self.serverSocket.bind(("192.168.0.137", 12000))
+        self.serverSocket.bind((self.local_ip, self.port))
 
         self.data_lock = threading.Lock()
         self.data = {
@@ -18,6 +22,9 @@ class Sensors():
         }
         self.alive = True
         self.start()
+
+    def get_address(self):
+        return "{}:{}".format(self.local_ip, self.port)
 
     def get_values(self):
         with self.data_lock:
