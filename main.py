@@ -185,6 +185,8 @@ voice.play(sound, loops=-1)
 voice.set_volume(0)
 
 done = False
+
+
 while not done:
 
 
@@ -201,6 +203,7 @@ while not done:
             acc = sensor_data["acc1"]["data"]
             angle = math.atan2(-acc[0], acc[2])
             turn = angle * TURN_FACTOR
+
 
     # keyboard input
     pygame.event.pump()

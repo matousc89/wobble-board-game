@@ -2,11 +2,13 @@ import socket
 import time
 import threading
 import copy
+import math
 
 class Sensors():
 
-    def __init__(self):
+    def __init__(self, logging=False):
         hostname = socket.gethostname()
+        self.IS_LOGGING = logging
         self.local_ip = socket.gethostbyname(hostname)
         self.port = 12000
 
@@ -25,7 +27,14 @@ class Sensors():
         self.data_public = {
         }
         self.alive = True
+
+        if self.IS_LOGGING:
+            with open("data.csv", "w") as log:
+                log.write("{},{},{}\n".format("a1", "a2", "a3"))
+
         self.start()
+
+
 
     def get_address(self):
         return "{}:{}".format(self.local_ip, self.port)
@@ -39,6 +48,19 @@ class Sensors():
             else:
                 data[name]["online"] = False
         return data
+
+    def calc_angles(self, acc):
+        roll, pitch, yaw = acc
+        roll_yaw_abs = abs(complex(roll, yaw))
+        angle = math.atan2(-pitch, roll_yaw_abs)
+        angle_roll = math.atan2(pitch, roll)
+        angle_yaw = math.atan2(pitch, yaw)
+
+        print(angle_roll, angle_yaw)
+
+        if self.IS_LOGGING:
+            with open("data.csv", "a") as log:
+                log.write("{},{},{}\n".format(angle, angle_roll, angle_yaw))
 
     def read(self):
         message, address = self.serverSocket.recvfrom(1024)
@@ -55,6 +77,10 @@ class Sensors():
             del sampling[0]
         freq = round(1 / (sum(sampling) / len(sampling)), 2)
 
+        self.calc_angles(acc)
+
+        print(freq)
+
         self.data[name] = {
             "address": remote_ip,
             "data": acc,
@@ -62,7 +88,6 @@ class Sensors():
             "sampling": sampling,
             "freq": freq,
         }
-
         TO_COPY = ("address", "data", "timestamp")
         with self.data_lock:
             for name, values in self.data.items():
@@ -71,8 +96,7 @@ class Sensors():
     def run(self):
         while self.alive:
             self.read()
-            time.sleep(0.01)
-
+            time.sleep(0.001)
 
     def start(self):
         with self.data_lock:
@@ -85,9 +109,9 @@ class Sensors():
             self.alive = False
 
 
-# if __name__ == "__main__":
-#     sensors = Sensors()
-#
-#     while True:
-#         time.sleep(1)
-#         print(sensors.get_values())
+if __name__ == "__main__":
+    sensors = Sensors(logging=True)
+
+    while True:
+        time.sleep(1)
+        print(sensors.get_values())
