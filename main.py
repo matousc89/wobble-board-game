@@ -148,7 +148,7 @@ class Canal():
 
 
 FPS = 30
-FULLCSREEN = True
+FULLCSREEN = False
 
 pygame.init()
 clock = pygame.time.Clock()
@@ -191,13 +191,16 @@ while not done:
     # default
     speed = 0.3
     turn = 0
+    angle = 0
 
     # acc input
     sensor_data = sensors.get_values()
-    acc = sensor_data["acc1"]["data"]
-    angle = math.atan2(-acc[0], acc[2])
     TURN_FACTOR = 1
-    turn = angle * TURN_FACTOR
+    if sensor_data:
+        if sensor_data["acc1"]["data"]:
+            acc = sensor_data["acc1"]["data"]
+            angle = math.atan2(-acc[0], acc[2])
+            turn = angle * TURN_FACTOR
 
     # keyboard input
     pygame.event.pump()

@@ -16,9 +16,13 @@ class Sensors():
         self.data_lock = threading.Lock()
         self.data = {
             "acc1": {
-                "data": [0.001, 0.001, 10],
-                "timestamp": time.time(),
+                "address": False,
+                "timestamp": -1,
+                "data": False,
+                "sampling": [],
             }
+        }
+        self.data_public = {
         }
         self.alive = True
         self.start()
@@ -28,23 +32,47 @@ class Sensors():
 
     def get_values(self):
         with self.data_lock:
-            data = copy.copy(self.data)
+            data = copy.copy(self.data_public)
+        for name in data.keys():
+            if "timestamp" in data[name]:
+                data[name]["online"] = True if time.time() - data[name]["timestamp"] < 0.2 else False
+            else:
+                data[name]["online"] = False
         return data
 
     def read(self):
         message, address = self.serverSocket.recvfrom(1024)
         cells = str(message).replace("'", "").split(",")
         acc = list(map(float, cells[-3:]))
+        remote_ip = address[0]
+        name = "acc1"
+        sampling = copy.copy(self.data[name]["sampling"])
+        last_timestamp = copy.copy(self.data[name]["timestamp"])
+
+        current_timestamp = time.time()
+        sampling.append(current_timestamp - last_timestamp)
+        if len(sampling) > 5:
+            del sampling[0]
+        freq = round(1 / (sum(sampling) / len(sampling)), 2)
+
+        self.data[name] = {
+            "address": remote_ip,
+            "data": acc,
+            "timestamp": current_timestamp,
+            "sampling": sampling,
+            "freq": freq,
+        }
+
+        TO_COPY = ("address", "data", "timestamp")
         with self.data_lock:
-            self.data["acc1"] = {
-                "data": acc,
-                "timestamp": time.time()
-            }
+            for name, values in self.data.items():
+                self.data_public[name] = {k: values[k] for k in TO_COPY}
 
     def run(self):
         while self.alive:
             self.read()
-            time.sleep(0.001)
+            time.sleep(0.01)
+
 
     def start(self):
         with self.data_lock:
@@ -55,3 +83,11 @@ class Sensors():
     def stop(self):
         with self.data_lock:
             self.alive = False
+
+
+# if __name__ == "__main__":
+#     sensors = Sensors()
+#
+#     while True:
+#         time.sleep(1)
+#         print(sensors.get_values())
